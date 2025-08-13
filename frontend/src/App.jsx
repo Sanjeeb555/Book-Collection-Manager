@@ -1,17 +1,19 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import React from "react";
+import { Outlet } from "react-router-dom";
+import Books from "./pages/Books";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 
-function App() {
+export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Navigate to="/login" />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-      </Routes>
-    </Router>
+    <div className="flex flex-col min-h-screen bg-gray-100">
+      <Navbar /> {}
+      <main className="flex-1 w-full px-4 py-6">
+        <div className="max-w-7xl mx-auto w-full">
+          <Outlet /> {}
+        </div>
+      </main>
+      <Footer />
+    </div>
   );
 }
-
-export default App;

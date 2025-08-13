@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import bookService from "../services/bookService";
 
 export default function Books() {
   const [books, setBooks] = useState([]);
@@ -6,120 +7,165 @@ export default function Books() {
   const [author, setAuthor] = useState("");
   const [year, setYear] = useState("");
   const [genre, setGenre] = useState("");
-  const [editIndex, setEditIndex] = useState(null);
+  const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
-    const savedBooks = JSON.parse(localStorage.getItem("books")) || [];
-    setBooks(savedBooks);
+    fetchBooks();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("books", JSON.stringify(books));
-  }, [books]);
+  const fetchBooks = async () => {
+    try {
+      const data = await bookService.getBooks();
+      if (Array.isArray(data)) {
+        setBooks(data.filter(b => b && b.title));
+      } else {
+        setBooks([]);
+      }
+    } catch (err) {
+      console.error("Error fetching books:", err);
+      setBooks([]);
+    }
+  };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newBook = { title, author, year, genre };
-
-    if (editIndex !== null) {
-      const updated = [...books];
-      updated[editIndex] = newBook;
-      setBooks(updated);
-      setEditIndex(null);
-    } else {
-      setBooks([...books, newBook]);
+  const handleAddOrUpdateBook = async () => {
+    if (!title || !author || !year || !genre) {
+      alert("Please fill all fields!");
+      return;
     }
 
-    setTitle("");
-    setAuthor("");
-    setYear("");
-    setGenre("");
+    const bookData = { title, author, year, genre };
+
+    try {
+      if (editingId) {
+        const updatedBook = await bookService.updateBook(editingId, bookData);
+        setBooks(books.map((b) => (b && b._id === editingId ? updatedBook : b)));
+        setEditingId(null);
+      } else {
+        const added = await bookService.createBook(bookData);
+        setBooks([...books, added]);
+      }
+
+      setTitle("");
+      setAuthor("");
+      setYear("");
+      setGenre("");
+    } catch (err) {
+      console.error("Error saving book:", err);
+    }
   };
 
-  const handleEdit = (index) => {
-    const book = books[index];
-    setTitle(book.title);
-    setAuthor(book.author);
-    setYear(book.year);
-    setGenre(book.genre);
-    setEditIndex(index);
+  const handleEdit = (book) => {
+    if (!book) return;
+    setEditingId(book._id);
+    setTitle(book.title || "");
+    setAuthor(book.author || "");
+    setYear(book.year || "");
+    setGenre(book.genre || "");
   };
 
-  const handleDelete = (index) => {
-    const updated = books.filter((_, i) => i !== index);
-    setBooks(updated);
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this book?")) return;
+    try {
+      await bookService.deleteBook(id);
+      setBooks(books.filter((b) => b && b._id !== id));
+    } catch (err) {
+      console.error("Error deleting book:", err);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-6">
-      <h1 className="text-2xl font-bold mb-4">📚 Book Management</h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-200 via-teal-200 to-green-200 p-8">
+      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8">
+        <h1 className="text-4xl font-bold text-gray-800 mb-6 text-center">
+          📚 Book Management
+        </h1>
 
-      {}
-      <form onSubmit={handleSubmit} className="bg-white p-4 rounded shadow-md w-full max-w-md">
-        <input
-          className="border p-2 w-full mb-2"
-          placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
-        <input
-          className="border p-2 w-full mb-2"
-          placeholder="Author"
-          value={author}
-          onChange={(e) => setAuthor(e.target.value)}
-          required
-        />
-        <input
-          className="border p-2 w-full mb-2"
-          placeholder="Year"
-          type="number"
-          value={year}
-          onChange={(e) => setYear(e.target.value)}
-          required
-        />
-        <input
-          className="border p-2 w-full mb-2"
-          placeholder="Genre"
-          value={genre}
-          onChange={(e) => setGenre(e.target.value)}
-          required
-        />
-        <button className="bg-blue-500 text-white px-4 py-2 rounded w-full">
-          {editIndex !== null ? "Update Book" : "Add Book"}
-        </button>
-      </form>
+        {}
+        <div className="flex flex-wrap gap-4 mb-8">
+          <input
+            type="text"
+            placeholder="Title"
+            className="flex-1 border border-gray-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-400"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Author"
+            className="flex-1 border border-gray-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-400"
+            value={author}
+            onChange={(e) => setAuthor(e.target.value)}
+          />
+          <input
+            type="number"
+            placeholder="Year"
+            className="w-28 border border-gray-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-400"
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Genre"
+            className="flex-1 border border-gray-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-400"
+            value={genre}
+            onChange={(e) => setGenre(e.target.value)}
+          />
+          <button
+            onClick={handleAddOrUpdateBook}
+            className={`${
+              editingId
+                ? "bg-green-500 hover:bg-green-600"
+                : "bg-blue-500 hover:bg-blue-600"
+            } text-white font-semibold px-5 py-3 rounded-lg transition`}
+          >
+            {editingId ? "Update Book" : "Add Book"}
+          </button>
+        </div>
 
-      {}
-      <div className="mt-6 w-full max-w-md">
+        {}
         {books.length === 0 ? (
-          <p className="text-gray-500 text-center">No books added yet</p>
+          <p className="text-gray-500 text-center">No books found</p>
         ) : (
-          books.map((book, index) => (
-            <div
-              key={index}
-              className="bg-white shadow p-3 rounded mb-2 flex justify-between items-center"
-            >
-              <div>
-                <h2 className="font-bold">{book.title}</h2>
-                <p>{book.author} — {book.year} — {book.genre}</p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(index)}
-                  className="bg-yellow-400 px-3 py-1 rounded"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(index)}
-                  className="bg-red-500 text-white px-3 py-1 rounded"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-blue-100 text-gray-700">
+                <th className="p-3 border">Title</th>
+                <th className="p-3 border">Author</th>
+                <th className="p-3 border">Year</th>
+                <th className="p-3 border">Genre</th>
+                <th className="p-3 border">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {books
+                .filter(book => book && book.title)
+                .map((book) => (
+                  <tr
+                    key={book._id}
+                    className="hover:bg-blue-50 transition text-center"
+                  >
+                    <td className="p-3 border">{book.title}</td>
+                    <td className="p-3 border">{book.author}</td>
+                    <td className="p-3 border">{book.year}</td>
+                    <td className="p-3 border">{book.genre}</td>
+                    <td className="p-3 border space-x-2">
+                      <button
+                        onClick={() => handleEdit(book)}
+                        className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(book._id)}
+                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
         )}
       </div>
     </div>
