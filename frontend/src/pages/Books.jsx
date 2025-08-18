@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import bookService from "../services/bookService";
+import api from "../api"; // central axios instance
 
 export default function Books() {
   const [books, setBooks] = useState([]);
@@ -15,9 +15,9 @@ export default function Books() {
 
   const fetchBooks = async () => {
     try {
-      const data = await bookService.getBooks();
-      if (Array.isArray(data)) {
-        setBooks(data.filter(b => b && b.title));
+      const res = await api.get("/books");
+      if (Array.isArray(res.data)) {
+        setBooks(res.data.filter((b) => b && b.title));
       } else {
         setBooks([]);
       }
@@ -37,12 +37,14 @@ export default function Books() {
 
     try {
       if (editingId) {
-        const updatedBook = await bookService.updateBook(editingId, bookData);
-        setBooks(books.map((b) => (b && b._id === editingId ? updatedBook : b)));
+        const res = await api.put(`/books/${editingId}`, bookData);
+        setBooks(
+          books.map((b) => (b && b._id === editingId ? res.data : b))
+        );
         setEditingId(null);
       } else {
-        const added = await bookService.createBook(bookData);
-        setBooks([...books, added]);
+        const res = await api.post("/books", bookData);
+        setBooks([...books, res.data]);
       }
 
       setTitle("");
@@ -66,7 +68,7 @@ export default function Books() {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this book?")) return;
     try {
-      await bookService.deleteBook(id);
+      await api.delete(`/books/${id}`);
       setBooks(books.filter((b) => b && b._id !== id));
     } catch (err) {
       console.error("Error deleting book:", err);
@@ -80,7 +82,7 @@ export default function Books() {
           📚 Book Management
         </h1>
 
-        {}
+        {/* Form */}
         <div className="flex flex-wrap gap-4 mb-8">
           <input
             type="text"
@@ -122,7 +124,7 @@ export default function Books() {
           </button>
         </div>
 
-        {}
+        {/* Table */}
         {books.length === 0 ? (
           <p className="text-gray-500 text-center">No books found</p>
         ) : (
@@ -137,33 +139,34 @@ export default function Books() {
               </tr>
             </thead>
             <tbody>
-              {books
-                .filter(book => book && book.title)
-                .map((book) => (
-                  <tr
-                    key={book._id}
-                    className="hover:bg-blue-50 transition text-center"
-                  >
-                    <td className="p-3 border">{book.title}</td>
-                    <td className="p-3 border">{book.author}</td>
-                    <td className="p-3 border">{book.year}</td>
-                    <td className="p-3 border">{book.genre}</td>
-                    <td className="p-3 border space-x-2">
-                      <button
-                        onClick={() => handleEdit(book)}
-                        className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(book._id)}
-                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+              {books.map(
+                (book) =>
+                  book && (
+                    <tr
+                      key={book._id}
+                      className="hover:bg-blue-50 transition text-center"
+                    >
+                      <td className="p-3 border">{book.title}</td>
+                      <td className="p-3 border">{book.author}</td>
+                      <td className="p-3 border">{book.year}</td>
+                      <td className="p-3 border">{book.genre}</td>
+                      <td className="p-3 border space-x-2">
+                        <button
+                          onClick={() => handleEdit(book)}
+                          className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(book._id)}
+                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  )
+              )}
             </tbody>
           </table>
         )}

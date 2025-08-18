@@ -8,22 +8,20 @@ import Register from "./pages/Register";
 import Books from "./pages/Books";
 import "./index.css";
 
-const router = createBrowserRouter(
-  [
-    {
-      path: "/",
-      element: <App />,
-      children: [
-        { index: true, element: <Login /> },
-        { path: "home", element: <Home /> },
-        { path: "login", element: <Login /> },
-        { path: "register", element: <Register /> },
-        { path: "books", element: <Books /> },
-      ],
-    },
-  ],
-  { basename: import.meta.env.BASE_URL }
-);
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <App />,
+    children: [
+      { index: true, element: <Login /> },
+      { path: "home", element: <Home /> },
+      { path: "login", element: <Login /> },
+      { path: "register", element: <Register /> },
+      { path: "books", element: <Books /> },
+    ],
+  },
+]);
+
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
